@@ -17,7 +17,7 @@ export function resolveHistoryScrollMode({
   if (configured === "app") return "app";
   if (isKnownJumpProneTerminal(env)) return "app";
   if (platform === "win32" && env.TERM_PROGRAM === undefined && env.MSYSTEM === undefined) {
-    return "native";
+    return "app";
   }
   return "native";
 }

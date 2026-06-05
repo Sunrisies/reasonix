@@ -428,18 +428,11 @@ export async function chatCommand(opts: ChatOptions): Promise<void> {
   // prefer native drag-select copy (Shift+drag still selects with mouse
   // mode on in most terminals). exit hooks cover hard kills so the
   // sequence doesn't leak into the parent shell.
-  if (!opts.noMouse && cfg.mouseTracking !== false) {
-    enableMouseMode(historyScrollMode);
-    process.once("exit", disableMouseMode);
-    process.once("SIGINT", () => {
-      disableMouseMode();
-      process.exit(130);
-    });
-    process.once("SIGTERM", () => {
-      disableMouseMode();
-      process.exit(143);
-    });
-  }
+  // Mouse tracking + alternate screen handled by <AlternateScreen mouseTracking>
+  // in App.tsx — Ink's built-in component enables modes 1000+1002+1003+1006
+  // on mount and cleans up on unmount. The separate enableMouseMode call
+  // is no longer needed here.
+  // https://github.com/vadimdemedes/ink/tree/main#AlternateScreen
 
   const { waitUntilExit } = render(
     <Root

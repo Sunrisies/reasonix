@@ -145,6 +145,12 @@ export const SLASH_COMMANDS: readonly SlashCommandSpec[] = [
     summary: "keyboard + mouse + copy/paste reference",
   },
   {
+    cmd: "copy",
+    group: "info",
+    summary: "copy the last assistant response to the system clipboard",
+    aliases: ["clip"],
+  },
+  {
     cmd: "feedback",
     group: "info",
     summary: "open a GitHub issue with diagnostic info copied to clipboard",

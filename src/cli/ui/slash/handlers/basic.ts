@@ -1,6 +1,7 @@
 import { wrapToCells } from "@/cli/ui/text-width.js";
 import { t, tObj } from "@/i18n/index.js";
 import { VERSION } from "@/version.js";
+import { writeClipboard } from "../../clipboard.js";
 import { formatDuration, formatLoopStatus, parseLoopCommand } from "../../loop.js";
 import { SLASH_COMMANDS, SLASH_GROUP_ORDER, orderSlashCommandsByGroup } from "../commands.js";
 import type { SlashHandler } from "../dispatch.js";
@@ -151,6 +152,29 @@ const keys: SlashHandler = (_args, _loop, ctx) => {
   return {};
 };
 
+const copyLast: SlashHandler = (_args, loop, ctx) => {
+  // Walk the log in reverse to find the last non-empty assistant response.
+  const entries = loop.log.entries;
+  let content = "";
+  for (let i = entries.length - 1; i >= 0; i--) {
+    const entry = entries[i];
+    if (entry?.role === "assistant" && entry.content && entry.content.length > 0) {
+      content = entry.content;
+      break;
+    }
+  }
+  if (!content) return { info: t("handlers.basic.copyNotFound") };
+
+  const result = writeClipboard(content);
+  if (result.osc52) {
+    return { info: t("handlers.basic.copyOsc52", { chars: content.length }) };
+  }
+  if (result.filePath) {
+    return { info: t("handlers.basic.copyFile", { path: result.filePath, chars: content.length }) };
+  }
+  return { info: t("handlers.basic.copyFailed") };
+};
+
 const about: SlashHandler = () => {
   const lines = [
     t("handlers.basic.aboutHeader", { version: VERSION }),
@@ -168,6 +192,7 @@ export const handlers: Record<string, SlashHandler> = {
   help,
   retry,
   loop,
+  copy: copyLast,
   keys,
   about,
 };

@@ -1,7 +1,7 @@
 import { type WriteStream, statSync } from "node:fs";
 import { resolve } from "node:path";
 import { derivePrefix, toApprovalPrompt } from "@reasonix/core-utils";
-import { Box, Text, useStdin, useStdout } from "ink";
+import { AlternateScreen, Box, Text, useStdin, useStdout } from "ink";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   type JsonlEventSink,
@@ -429,13 +429,15 @@ export function App(props: AppProps): React.ReactElement {
     <ThemeProvider name={themeName}>
       <AgentStoreProvider session={session} initialCards={initialCards}>
         <ChatScrollProvider wheelRows={wheelRows}>
-          <AppInner
-            {...props}
-            historyScrollMode={historyScrollMode}
-            themeName={themeName}
-            setThemeName={setThemeName}
-            statusBar={statusBar}
-          />
+          <AlternateScreen mouseTracking={true}>
+            <AppInner
+              {...props}
+              historyScrollMode={historyScrollMode}
+              themeName={themeName}
+              setThemeName={setThemeName}
+              statusBar={statusBar}
+            />
+          </AlternateScreen>
         </ChatScrollProvider>
       </AgentStoreProvider>
     </ThemeProvider>
@@ -4438,7 +4440,7 @@ function AppInner({
     <>
       <TickerProvider disabled={tickerSuspended}>
         <InflightProvider inflight={loop.inflight}>
-          <Box flexDirection="row" backgroundColor={SURFACE.bg}>
+          <Box flexDirection="row" flexGrow={1} backgroundColor={SURFACE.bg}>
             <Box
               flexDirection="column"
               flexGrow={planPanelOpen ? 0 : 1}
