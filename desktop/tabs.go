@@ -118,7 +118,20 @@ func (s *tabEventSink) Emit(e event.Event) {
 			}
 			s.app.mu.Unlock()
 		}
-		runtime.EventsEmit(s.ctx, eventChannel, toWireTab(e, s.tabID))
+		// Forward the actual tab session cost so the frontend sees the
+		// accumulated spend even on non-usage events (e.g. context panel
+		// refresh or tab switch).
+		tabMu := s.app.mu
+		tabMu.Lock()
+		tab, tabExists := s.app.tabs[s.tabID]
+		var cost float64
+		var currency string
+		if tabExists && tab != nil {
+			cost = tab.sessionCost
+			currency = tab.sessionCurrency
+		}
+		tabMu.Unlock()
+		runtime.EventsEmit(s.ctx, eventChannel, toWireTab(e, s.tabID, cost, currency))
 	}
 	// Record read_file successes in the tab's telemetry.
 	if e.Kind == event.ToolResult && e.Tool.Name == "read_file" && e.Tool.Err == "" {
@@ -198,16 +211,16 @@ func (s *tabEventSink) recordReadTelemetry(e event.Event) {
 
 // --- wire event with tab ----------------------------------------------------
 
-func toWireTab(e event.Event, tabID string) wireEventTab {
+func toWireTab(e event.Event, tabID string, sessionCost float64, sessionCurrency string) wireEventTab {
 	w := toWire(e)
 	return wireEventTab{
 		wireEvent:         w,
 		TabID:             tabID,
 		SessionHitTokens:  e.SessionHit,
 		SessionMissTokens: e.SessionMiss,
-		SessionCost:       0, // filled by frontend accumulator per tab
-		SessionCurrency:   "",
-		SessionCostUsd:    0, // deprecated compatibility alias
+		SessionCost:       sessionCost,
+		SessionCurrency:   sessionCurrency,
+		SessionCostUsd:    sessionCost, // deprecated compatibility alias
 	}
 }
 
