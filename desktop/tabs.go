@@ -50,6 +50,10 @@ type WorkspaceTab struct {
 	readTelemetry []readFileRecord
 	telemMu       sync.Mutex
 
+	// sessionCost tracks the accumulated cost for this tab session.
+	sessionCost     float64
+	sessionCurrency string
+
 	model       string // active model ref (for meta)
 	effort      *string
 	mode        string // "normal" | "plan" | "yolo"; yolo is runtime-only
@@ -106,6 +110,14 @@ type tabEventSink struct {
 
 func (s *tabEventSink) Emit(e event.Event) {
 	if s.ctx != nil {
+		if e.Kind == event.Usage && s.app != nil {
+			s.app.mu.Lock()
+			if tab, ok := s.app.tabs[s.tabID]; ok && tab != nil && e.Pricing != nil {
+				tab.sessionCost += e.Pricing.Cost(e.Usage)
+				tab.sessionCurrency = e.Pricing.Symbol()
+			}
+			s.app.mu.Unlock()
+		}
 		runtime.EventsEmit(s.ctx, eventChannel, toWireTab(e, s.tabID))
 	}
 	// Record read_file successes in the tab's telemetry.
@@ -1862,7 +1874,12 @@ func (a *App) ContextPanel(tabID string) ContextPanelInfo {
 		return ContextPanelInfo{ReadFiles: []readFileRecord{}, ChangedFiles: []ChangedFileInfo{}}
 	}
 
-	info := ContextPanelInfo{ReadFiles: []readFileRecord{}, ChangedFiles: []ChangedFileInfo{}}
+	info := ContextPanelInfo{
+		ReadFiles:      []readFileRecord{},
+		ChangedFiles:   []ChangedFileInfo{},
+		SessionCost:    tab.sessionCost,
+		SessionCurrency: tab.sessionCurrency,
+	}
 	if ctrl != nil {
 		used, window := ctrl.ContextSnapshot()
 		info.UsedTokens = used
